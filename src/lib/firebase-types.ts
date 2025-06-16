@@ -50,3 +50,37 @@ export type GoogleTokenResponse = {
     token_type: "Bearer";
     id_token: string;
 };
+
+export type FirebaseRefreshTokenResponse = {
+    access_token: string;
+    expires_in: string;
+    token_type: "Bearer";
+    refresh_token: string;
+    id_token: string;
+    user_id: string;
+    project_id: string;
+};
+
+export type FirebaseIdTokenPayload = {
+    iss: string;
+    aud: string;
+    auth_time: number;
+    user_id: string;
+    sub: string;
+    iat: number;
+    exp: number;
+    email?: string;
+    email_verified?: boolean;
+    firebase: {
+        identities: {
+            email?: string[];
+            "google.com"?: string[];
+            [provider: string]: string[] | undefined;
+        };
+        sign_in_provider: string;
+        tenant?: string;
+    };
+    uid?: string;
+    name?: string;
+    picture?: string;
+};

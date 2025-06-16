@@ -1,31 +1,26 @@
-import { getRequestEvent } from "$app/server";
-import { PRIVATE_GOOGLE_CLIENT_SECRET } from "$env/static/private";
-import { PUBLIC_FIREBASE_CONFIG, PUBLIC_GOOGLE_CLIENT_ID } from "$env/static/public";
+import {
+    apiKey,
+    client_id,
+    client_secret,
+    getRedirectUri,
+    projectId
+} from "./firebase";
 import type {
-    FirebaseConfig,
     FirebaseCreateAuthUriResponse,
     FirebaseIdpSignInResponse,
+    FirebaseIdTokenPayload,
+    FirebaseRefreshTokenResponse,
     GoogleTokenResponse
 } from "./firebase-types";
 import { firebaseFetch, googleFetch } from "./rest-fetch";
+import { jwtVerify, createRemoteJWKSet } from 'jose';
 
+// JWK Token from Firebase
+const jwks = createRemoteJWKSet(
+    new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com')
+);
 
-const firebase_config = JSON.parse(PUBLIC_FIREBASE_CONFIG) as FirebaseConfig;
-
-const apiKey = firebase_config.apiKey;
-
-const client_id = PUBLIC_GOOGLE_CLIENT_ID;
-const client_secret = PRIVATE_GOOGLE_CLIENT_SECRET;
-const client_redirect_uri = '/auth/callback';
-
-
-const getRedirectUri = () => {
-
-    const { url } = getRequestEvent();
-
-    return url.origin + client_redirect_uri;
-};
-
+// Functions
 
 export function createGoogleOAuthLoginUrl() {
 
@@ -46,7 +41,9 @@ export async function exchangeCodeForGoogleIdToken(code: string) {
 
     const redirect_uri = getRedirectUri();
 
-    return await googleFetch<GoogleTokenResponse>('https://oauth2.googleapis.com/token', {
+    const url = 'https://oauth2.googleapis.com/token';
+
+    return await googleFetch<GoogleTokenResponse>(url, {
         code,
         client_id,
         client_secret,
@@ -55,16 +52,46 @@ export async function exchangeCodeForGoogleIdToken(code: string) {
     });
 }
 
+export async function refreshFirebaseIdToken(refreshToken: string) {
+
+    const url = `https://securetoken.googleapis.com/v1/token?key=${apiKey}`;
+
+    return await googleFetch<FirebaseRefreshTokenResponse>(url, {
+        grant_type: "refresh_token",
+        refresh_token: refreshToken
+    });
+}
+
+export async function verifyFirebaseToken(idToken: string) {
+
+    try {
+        const { payload } = await jwtVerify(idToken, jwks, {
+            issuer: `https://securetoken.google.com/${projectId}`,
+            audience: projectId
+        });
+
+        return {
+            error: null,
+            data: payload as FirebaseIdTokenPayload
+        };
+    } catch (err) {
+        console.error("Token verification failed:", err);
+        return {
+            error: err as Error,
+            data: null
+        }
+    }
+}
+
+
 export async function createAuthUri(redirect_uri: string) {
 
     const url = `https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${apiKey}`;
 
-    const input = {
+    return await firebaseFetch<FirebaseCreateAuthUriResponse>(url, {
         continueUri: redirect_uri,
         providerId: "google.com"
-    };
-
-    return await firebaseFetch<FirebaseCreateAuthUriResponse>(url, input);
+    });
 }
 
 export async function signInWithIdp(googleIdToken: string) {
@@ -73,13 +100,11 @@ export async function signInWithIdp(googleIdToken: string) {
 
     const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${apiKey}`;
 
-    const input = {
+    return await firebaseFetch<FirebaseIdpSignInResponse>(url, {
         postBody: `id_token=${googleIdToken}&providerId=google.com`,
         requestUri,
         returnSecureToken: true
-    };
-
-    return await firebaseFetch<FirebaseIdpSignInResponse>(url, input);
+    });
 }
 
 export async function exchangeCodeForFirebaseToken(code: string) {
@@ -127,3 +152,5 @@ export async function exchangeCodeForFirebaseToken(code: string) {
         error: null
     };
 }
+
+

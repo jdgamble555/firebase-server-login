@@ -8,6 +8,9 @@ const COOKIE_OPTIONS = {
     maxAge: 60 * 60
 } as Parameters<ReturnType<typeof getRequestEvent>['cookies']['set']>[2];
 
+const FIREBASE_ID_TOKEN = 'firebase_id_token';
+const FIREBASE_REFRESH_TOKEN = 'firebase_refresh_token';
+
 
 export const storeToken = (
     token_id: string,
@@ -17,6 +20,25 @@ export const storeToken = (
     const { cookies } = getRequestEvent();
 
     // set both cookies
-    cookies.set('firebase_id_token', token_id, COOKIE_OPTIONS);
-    cookies.set('firebase_refresh_token', refresh_token, COOKIE_OPTIONS);
+    cookies.set(
+        FIREBASE_ID_TOKEN,
+        token_id,
+        COOKIE_OPTIONS
+    );
+    
+    cookies.set(
+        FIREBASE_REFRESH_TOKEN,
+        refresh_token,
+        COOKIE_OPTIONS
+    );
 }
+
+export const logout = () => {
+    
+    const { cookies } = getRequestEvent();
+
+    // remove both cookies
+    cookies.delete(FIREBASE_ID_TOKEN, COOKIE_OPTIONS);
+    cookies.delete(FIREBASE_REFRESH_TOKEN, COOKIE_OPTIONS);
+}
+
