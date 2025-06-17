@@ -1,3 +1,4 @@
+import { getRequestEvent } from "$app/server";
 import type { FirebaseRestError } from "./firebase-types";
 
 export const restFetch = async <T, A>(
@@ -7,6 +8,8 @@ export const restFetch = async <T, A>(
         formEncode: boolean;
     }
 ) => {
+
+    const { fetch } = getRequestEvent();
 
     const res = await fetch(url, {
         method: "POST",

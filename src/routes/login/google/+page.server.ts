@@ -9,3 +9,7 @@ export const load: PageServerLoad = async () => {
 
     redirect(302, loginUrl);
 };
+
+// TODO - server actions - logout, callback, googleLogin
+// TODO - nav in layout, add home page, create login / logout dynamic
+// TODO - add firebase server to layout.server.ts, see if can share without await?

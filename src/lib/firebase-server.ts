@@ -1,20 +1,28 @@
-import { getRequestEvent } from "$app/server";
-import { error, redirect } from "@sveltejs/kit";
 import { initializeServerApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore/lite";
 import { firebase_config } from "./firebase";
+import { getVerifiedToken } from "./firebase-session";
 
+export const getFirebaseServer = async () => {
 
-export const firebaseServer = async () => {
+    const {
+        data: authIdToken,
+        error: verifyError
+    } = await getVerifiedToken();
 
-    // Check for token
-    const { locals: { getVerifedToken } } = getRequestEvent();
-
-    const { data: authIdToken } = await getVerifedToken();
+    if (verifyError) {
+        return {
+            data: null,
+            error: verifyError
+        };
+    }
 
     if (!authIdToken) {
-        redirect(302, '/login');
+        return {
+            data: null,
+            error: null
+        };
     }
 
     // Login with the token
@@ -29,11 +37,17 @@ export const firebaseServer = async () => {
     await auth.authStateReady();
 
     if (auth.currentUser === null) {
-        error(401, 'Invalid Token');
+        return {
+            data: null,
+            error: new Error('Invalid Token')
+        };
     }
 
     return {
-        auth,
-        db
+        error: null,
+        data: {
+            db,
+            auth
+        }
     };
 };

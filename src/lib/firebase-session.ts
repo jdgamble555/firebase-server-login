@@ -10,12 +10,9 @@ const COOKIE_OPTIONS = {
     maxAge: 60 * 60
 } as Parameters<ReturnType<typeof getRequestEvent>['cookies']['set']>[2];
 
-const FIREBASE_TOKEN = 'firebase_session';
+const FIREBASE_ID_TOKEN = 'firebase_id_token';
+const FIREBASE_REFRESH_TOKEN = 'firebase_refresh_token';
 
-type FirebaseSession = {
-    id_token: string;
-    refresh_token: string;
-};
 
 export const saveSession = (
     id_token: string,
@@ -24,14 +21,16 @@ export const saveSession = (
 
     const { cookies } = getRequestEvent();
 
-    const stringData = JSON.stringify({
+    // set both cookies
+    cookies.set(
+        FIREBASE_ID_TOKEN,
         id_token,
-        refresh_token
-    });
+        COOKIE_OPTIONS
+    );
 
     cookies.set(
-        FIREBASE_TOKEN,
-        stringData,
+        FIREBASE_REFRESH_TOKEN,
+        refresh_token,
         COOKIE_OPTIONS
     );
 }
@@ -40,18 +39,21 @@ export const getSession = () => {
 
     const { cookies } = getRequestEvent();
 
-    const stringData = cookies.get(FIREBASE_TOKEN) || null;
+    const id_token = cookies.get(FIREBASE_ID_TOKEN) || null;
+    const refresh_token = cookies.get(FIREBASE_REFRESH_TOKEN) || null;
 
-    if (!stringData) {
+    if (!id_token || !refresh_token) {
+        deleteSession();
         return {
             data: null
         };
     }
 
-    const data = JSON.parse(stringData) as FirebaseSession;
-
     return {
-        data
+        data: {
+            id_token,
+            refresh_token
+        }
     };
 };
 
@@ -59,7 +61,9 @@ export const deleteSession = () => {
 
     const { cookies } = getRequestEvent();
 
-    cookies.delete(FIREBASE_TOKEN, COOKIE_OPTIONS);
+    // remove both cookies
+    cookies.delete(FIREBASE_ID_TOKEN, COOKIE_OPTIONS);
+    cookies.delete(FIREBASE_REFRESH_TOKEN, COOKIE_OPTIONS);
 }
 
 

@@ -4,4 +4,6 @@
 	let { children } = $props();
 </script>
 
-{@render children()}
+<main class="mt-5 flex justify-center space-x-6">
+	{@render children()}
+</main>

@@ -23,9 +23,12 @@ export const load: PageServerLoad = async ({ url }) => {
 
     if (!exchangeData) {
         error(400, 'No exchange data!');
-    }  
+    }
 
-    saveSession(exchangeData);
+    saveSession(
+        exchangeData.idToken,
+        exchangeData.refreshToken
+    );
 
     redirect(302, '/');
 };

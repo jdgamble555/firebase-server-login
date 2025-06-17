@@ -4,12 +4,7 @@
 declare global {
 	namespace App {
 		// interface Error {}
-		interface Locals {
-			getVerifedToken(): Promise<{
-				data: string | null;
-				error: unknown;
-			}>;
-		}
+		// interface Locals {}
 		// interface PageData {}
 		// interface PageState {}
 		// interface Platform {}

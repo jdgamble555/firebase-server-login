@@ -1,3 +1,4 @@
-<main class="mt-5 flex justify-center">
-	<a href="/login" class="rounded bg-red-600 p-2 font-semibold text-white"> Signin with Google </a>
-</main>
+<nav class="flex gap-3 justify-center">
+	<a href="/about" class="font-medium text-gray-700 hover:text-blue-600">About</a>
+	<a href="/login" class="font-medium text-gray-700 hover:text-blue-600">Login</a>
+</nav>
