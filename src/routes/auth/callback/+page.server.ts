@@ -1,7 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { exchangeCodeForFirebaseToken } from '$lib/firebase-admin';
-import { storeToken } from '$lib/handle-session';
+import { saveSession } from '$lib/firebase-session';
 
 export const load: PageServerLoad = async ({ url }) => {
 
@@ -23,11 +23,9 @@ export const load: PageServerLoad = async ({ url }) => {
 
     if (!exchangeData) {
         error(400, 'No exchange data!');
-    }
+    }  
 
-    const { idToken, refreshToken } = exchangeData;
-
-    storeToken(idToken, refreshToken);
+    saveSession(exchangeData);
 
     redirect(302, '/');
 };
