@@ -1,4 +1,6 @@
 import { getRequestEvent } from "$app/server"
+import { refreshFirebaseIdToken } from "./firebase-admin";
+import { decodeFirebaseToken, verifyFirebaseToken } from "./firebase-jwt";
 
 const COOKIE_OPTIONS = {
     httpOnly: true,
@@ -12,7 +14,7 @@ const FIREBASE_ID_TOKEN = 'firebase_id_token';
 const FIREBASE_REFRESH_TOKEN = 'firebase_refresh_token';
 
 
-export const storeToken = (
+export const storeSessionTokens = (
     token_id: string,
     refresh_token: string
 ) => {
@@ -25,7 +27,7 @@ export const storeToken = (
         token_id,
         COOKIE_OPTIONS
     );
-    
+
     cookies.set(
         FIREBASE_REFRESH_TOKEN,
         refresh_token,
@@ -33,8 +35,22 @@ export const storeToken = (
     );
 }
 
-export const logout = () => {
-    
+export const getSessionTokens = () => {
+
+    const { cookies } = getRequestEvent();
+
+    const id_token = cookies.get(FIREBASE_ID_TOKEN) || null;
+    const refresh_token = cookies.get(FIREBASE_REFRESH_TOKEN) || null;
+
+    return {
+        id_token,
+        refresh_token
+    };
+
+};
+
+export const removeSessionTokens = () => {
+
     const { cookies } = getRequestEvent();
 
     // remove both cookies
@@ -42,3 +58,64 @@ export const logout = () => {
     cookies.delete(FIREBASE_REFRESH_TOKEN, COOKIE_OPTIONS);
 }
 
+
+export const getVerifiedToken = async () => {
+
+    const { id_token, refresh_token } = getSessionTokens();
+
+    if (!id_token || !refresh_token) {
+        removeSessionTokens();
+        return {
+            data: null,
+            error: null
+        };
+    }
+
+    const {
+        error: verifyError,
+        data
+    } = await verifyFirebaseToken(id_token);
+
+    if (verifyError) {
+
+        // Auto refresh if expired
+        if (verifyError.code === "ERR_JWT_EXPIRED") {
+
+            const {
+                data: refreshData,
+                error: refreshError
+            } = await refreshFirebaseIdToken(refresh_token);
+
+            if (refreshError) {
+                removeSessionTokens();
+                return {
+                    user: null,
+                    error: refreshError
+                };
+            }
+
+            const {
+                id_token: new_id_token,
+                refresh_token: new_refresh_token
+            } = refreshData!;
+
+            storeSessionTokens(new_id_token, new_refresh_token);
+
+            const newTokenPayload = decodeFirebaseToken(new_id_token);
+
+            return {
+                data: newTokenPayload,
+                error: null
+            };
+        }
+        return {
+            data: null,
+            error: verifyError
+        };
+    }
+
+    return {
+        data,
+        error: null
+    };
+};

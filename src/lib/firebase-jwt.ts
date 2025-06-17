@@ -1,0 +1,45 @@
+import { createRemoteJWKSet, decodeJwt, jwtVerify } from "jose";
+import { projectId } from "./firebase";
+import type { FirebaseIdTokenPayload } from "./firebase-types";
+import { JWSSignatureVerificationFailed, JWTClaimValidationFailed, JWTExpired, JWTInvalid } from "jose/errors";
+
+
+// JWK Token from Firebase
+const jwks = createRemoteJWKSet(
+    new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com')
+);
+
+export async function decodeFirebaseToken(token_id: string) {
+    return decodeJwt(token_id) as FirebaseIdTokenPayload;
+}
+
+export async function verifyFirebaseToken(idToken: string) {
+
+    try {
+
+        const { payload } = await jwtVerify(idToken, jwks, {
+            issuer: `https://securetoken.google.com/${projectId}`,
+            audience: projectId
+        });
+
+        return {
+            error: null,
+            data: payload as FirebaseIdTokenPayload
+        };
+
+    } catch (err: unknown) {
+
+        if (err instanceof JWTExpired ||
+            err instanceof JWTInvalid ||
+            err instanceof JWTClaimValidationFailed ||
+            err instanceof JWSSignatureVerificationFailed) {
+            return {
+                error: err,
+                data: null
+            };
+        }
+
+        // Should never happen
+        throw err;
+    }
+}

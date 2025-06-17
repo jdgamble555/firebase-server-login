@@ -15,8 +15,9 @@ export const restFetch = async <T, A>(
                 ? "application/x-www-form-urlencoded"
                 : "application/json"
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        body: options?.formEncode ? new URLSearchParams(body as any) : JSON.stringify(body)
+        body: options?.formEncode
+            ? new URLSearchParams(body as Record<string, string>)
+            : JSON.stringify(body)
     });
 
     if (!res.ok) {

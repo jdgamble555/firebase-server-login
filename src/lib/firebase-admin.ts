@@ -2,23 +2,15 @@ import {
     apiKey,
     client_id,
     client_secret,
-    getRedirectUri,
-    projectId
+    getRedirectUri
 } from "./firebase";
 import type {
     FirebaseCreateAuthUriResponse,
     FirebaseIdpSignInResponse,
-    FirebaseIdTokenPayload,
     FirebaseRefreshTokenResponse,
     GoogleTokenResponse
 } from "./firebase-types";
 import { firebaseFetch, googleFetch } from "./rest-fetch";
-import { jwtVerify, createRemoteJWKSet } from 'jose';
-
-// JWK Token from Firebase
-const jwks = createRemoteJWKSet(
-    new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com')
-);
 
 // Functions
 
@@ -37,7 +29,7 @@ export function createGoogleOAuthLoginUrl() {
     return loginUrl.toString();
 }
 
-export async function exchangeCodeForGoogleIdToken(code: string) {
+async function exchangeCodeForGoogleIdToken(code: string) {
 
     const redirect_uri = getRedirectUri();
 
@@ -62,28 +54,6 @@ export async function refreshFirebaseIdToken(refreshToken: string) {
     });
 }
 
-export async function verifyFirebaseToken(idToken: string) {
-
-    try {
-        const { payload } = await jwtVerify(idToken, jwks, {
-            issuer: `https://securetoken.google.com/${projectId}`,
-            audience: projectId
-        });
-
-        return {
-            error: null,
-            data: payload as FirebaseIdTokenPayload
-        };
-    } catch (err) {
-        console.error("Token verification failed:", err);
-        return {
-            error: err as Error,
-            data: null
-        }
-    }
-}
-
-
 export async function createAuthUri(redirect_uri: string) {
 
     const url = `https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${apiKey}`;
@@ -94,7 +64,7 @@ export async function createAuthUri(redirect_uri: string) {
     });
 }
 
-export async function signInWithIdp(googleIdToken: string) {
+async function signInWithIdp(googleIdToken: string) {
 
     const requestUri = getRedirectUri()
 

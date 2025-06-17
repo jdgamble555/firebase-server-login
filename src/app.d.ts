@@ -4,7 +4,9 @@ declare global {
 	namespace App {
 		// interface Error {}
 		interface Locals {
-			getToken(): string | null;
+			getUser(): Promise<{
+				user: string | null;
+			}>;
 		}
 		// interface PageData {}
 		// interface PageState {}
