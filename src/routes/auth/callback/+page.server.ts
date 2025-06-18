@@ -5,6 +5,9 @@ import { loginWithCode } from '$lib/firebase-server';
 export const load: PageServerLoad = async ({ url }) => {
 
     const code = url.searchParams.get('code');
+    const state = url.searchParams.get('state');
+
+    const next = state ? JSON.parse(state).next : '/';
 
     if (!code) {
         error(400, 'Invalid URL!');
@@ -17,5 +20,5 @@ export const load: PageServerLoad = async ({ url }) => {
         error(400, loginError);
     }
 
-    redirect(302, '/');
+    redirect(302, next);
 };

@@ -3,6 +3,7 @@ import {
     client_id,
     client_redirect_uri,
     client_secret,
+    DEFAULT_REDIRECT_PAGE,
     firebase_config
 } from "./firebase";
 import type {
@@ -15,6 +16,19 @@ import { firebaseFetch, googleFetch } from "./rest-fetch";
 
 export const apiKey = firebase_config.apiKey;
 
+export const getPathname = () => {
+
+    const { request } = getRequestEvent();
+
+    const referer = request.headers.get('referer');
+
+    if (!referer) {
+        return DEFAULT_REDIRECT_PAGE;
+    }
+
+    const url = new URL(referer);
+    return url.searchParams.get("next") || DEFAULT_REDIRECT_PAGE;
+}
 
 export const getRedirectUri = () => {
 
@@ -28,6 +42,11 @@ export const getRedirectUri = () => {
 export function createGoogleOAuthLoginUrl() {
 
     const redirect_uri = getRedirectUri();
+    const path = getPathname();
+
+    const state = JSON.stringify({
+        next: path
+    });
 
     const loginUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
     loginUrl.searchParams.set("client_id", client_id);
@@ -36,6 +55,7 @@ export function createGoogleOAuthLoginUrl() {
     loginUrl.searchParams.set("scope", "openid email profile");
     loginUrl.searchParams.set("access_type", "offline");
     loginUrl.searchParams.set("prompt", "consent");
+    loginUrl.searchParams.set("state", state);
 
     return loginUrl.toString();
 }

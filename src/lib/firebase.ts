@@ -15,6 +15,7 @@ export const client_secret = PRIVATE_GOOGLE_CLIENT_SECRET;
 export const client_redirect_uri = '/auth/callback';
 export const FIREBASE_ID_TOKEN = 'firebase_id_token';
 export const FIREBASE_REFRESH_TOKEN = 'firebase_refresh_token';
+export const DEFAULT_REDIRECT_PAGE = '/';
 
 
 export const firebaseServer = async (authIdToken: string) => {
