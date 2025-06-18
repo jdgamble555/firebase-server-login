@@ -23,7 +23,8 @@ export async function verifyFirebaseToken(idToken: string) {
 
         const { payload } = await jwtVerify(idToken, jwks, {
             issuer: `https://securetoken.google.com/${projectId}`,
-            audience: projectId
+            audience: projectId,
+            algorithms: ['RS256']
         });
 
         return {
