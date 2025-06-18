@@ -1,8 +1,9 @@
+import { getRequestEvent } from "$app/server";
 import {
-    apiKey,
     client_id,
+    client_redirect_uri,
     client_secret,
-    getRedirectUri
+    firebase_config
 } from "./firebase";
 import type {
     FirebaseCreateAuthUriResponse,
@@ -11,6 +12,16 @@ import type {
     GoogleTokenResponse
 } from "./firebase-types";
 import { firebaseFetch, googleFetch } from "./rest-fetch";
+
+export const apiKey = firebase_config.apiKey;
+
+
+export const getRedirectUri = () => {
+
+    const { url } = getRequestEvent();
+
+    return url.origin + client_redirect_uri;
+};
 
 // Functions
 

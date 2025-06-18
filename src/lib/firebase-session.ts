@@ -1,17 +1,15 @@
 import { getRequestEvent } from "$app/server"
-import { refreshFirebaseIdToken } from "./firebase-admin";
+import { FIREBASE_ID_TOKEN, FIREBASE_REFRESH_TOKEN } from "./firebase";
+import { refreshFirebaseIdToken } from "./firebase-auth";
 import { verifyFirebaseToken } from "./firebase-jwt";
 
 const COOKIE_OPTIONS = {
     httpOnly: true,
     secure: true,
-    sameSite: 'strict',
+    sameSite: 'lax',
     path: '/',
     maxAge: 60 * 60
 } as Parameters<ReturnType<typeof getRequestEvent>['cookies']['set']>[2];
-
-const FIREBASE_ID_TOKEN = 'firebase_id_token';
-const FIREBASE_REFRESH_TOKEN = 'firebase_refresh_token';
 
 
 export const saveSession = (
@@ -43,7 +41,7 @@ export const getSession = () => {
     const refresh_token = cookies.get(FIREBASE_REFRESH_TOKEN) || null;
 
     if (!id_token || !refresh_token) {
-        deleteSession();
+        //deleteSession();
         return {
             data: null
         };
@@ -72,7 +70,6 @@ export const getVerifiedToken = async () => {
     const { data } = getSession();
 
     if (!data) {
-        deleteSession();
         return {
             data: null,
             error: null
@@ -109,9 +106,12 @@ export const getVerifiedToken = async () => {
                     error: null
                 };
             }
-            saveSession(refreshData.id_token, refreshData.refresh_token);
+            saveSession(
+                refreshData.id_token,
+                refreshData.refresh_token
+            );
             return {
-                data: refreshData.id_token,                
+                data: refreshData.id_token,
                 error: null
             };
         }

@@ -1,7 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { exchangeCodeForFirebaseToken } from '$lib/firebase-admin';
-import { saveSession } from '$lib/firebase-session';
+import { loginWithCode } from '$lib/firebase-server';
 
 export const load: PageServerLoad = async ({ url }) => {
 
@@ -11,24 +10,12 @@ export const load: PageServerLoad = async ({ url }) => {
         error(400, 'Invalid URL!');
     }
 
-    const {
-        data: exchangeData,
-        error: exchangeError
-    } = await exchangeCodeForFirebaseToken(code);
+    const { error: loginError } = await loginWithCode(code);
 
-    if (exchangeError) {
-        console.error(exchangeError);
-        error(400, exchangeError);
+    if (loginError) {
+        console.error(loginError);
+        error(400, loginError);
     }
-
-    if (!exchangeData) {
-        error(400, 'No exchange data!');
-    }
-
-    saveSession(
-        exchangeData.idToken,
-        exchangeData.refreshToken
-    );
 
     redirect(302, '/');
 };

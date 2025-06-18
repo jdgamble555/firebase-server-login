@@ -1,19 +1,22 @@
 import { getAbout } from "$lib/about";
-import { getFirebaseServer } from "$lib/firebase-server";
 import { error, redirect } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 
 
-export const load = (async () => {
+export const load = (async ({ locals: { getFirebaseServer }, parent }) => {
+
+    const { user } = await parent();
+
+    // Block access if not authenticated
+    // Although need Firestore Rules to prevent access on client
+    if (!user) {
+        redirect(302, '/login');
+    }
 
     const { data, error: firebaseError } = await getFirebaseServer();
 
     if (firebaseError) {
         error(400, firebaseError);
-    }
-
-    if (!data) {
-        redirect(302, '/login');
     }
 
     const { db } = data;
