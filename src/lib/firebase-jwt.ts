@@ -1,4 +1,4 @@
-import { createLocalJWKSet, jwtVerify, type JWK } from "jose";
+import { decodeProtectedHeader, importJWK, jwtVerify } from "jose";
 import { firebase_config } from "./firebase";
 import type { FirebaseIdTokenPayload } from "./firebase-types";
 import {
@@ -14,53 +14,28 @@ const projectId = firebase_config.projectId;
 
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
 
-// Cache for the JWKS to avoid refetching on every request within the same Edge Function instance.
-let preparedJWKS: ReturnType<typeof createLocalJWKSet>;
+// Cache of parsed keys
+const jwkCache: Record<string, CryptoKey> = {};
+const jwksRawCache: Record<string, unknown> = {};
 
-async function getPreparedJWKS() {
-    // Return cached JWKS if already prepared
-    if (preparedJWKS) {
-        return preparedJWKS;
+async function getFirebasePublicKey(kid: string): Promise<CryptoKey> {
+    if (jwkCache[kid]) return jwkCache[kid];
+
+    const res = await fetch(JWKS_URL);
+    if (!res.ok) throw new Error("Failed to fetch Firebase JWKS");
+
+    const { keys } = await res.json();
+
+    for (const jwk of keys) {
+        if (jwk.kid === kid && jwk.alg === 'RS256' && jwk.kty === 'RSA' && jwk.use === 'sig') {
+            const cryptoKey = await importJWK(jwk, 'RS256') as CryptoKey;
+            jwkCache[jwk.kid] = cryptoKey;
+            jwksRawCache[jwk.kid] = jwk;
+            return cryptoKey;
+        }
     }
 
-    try {
-        // Use the global fetch API available in Vercel's Edge Runtime
-        const response = await fetch(JWKS_URL);
-
-        if (!response.ok) {
-            throw new Error(`Failed to fetch JWKS from ${JWKS_URL}: ${response.statusText}`);
-        }
-
-        // Parse the JWKS JSON response
-        const jwksData = await response.json() as { keys: JWK[] };
-
-        // Filter keys: We only want RSA keys intended for signature verification (use: 'sig')
-        // and specifically for the RS256 algorithm. This explicit filtering is key.
-        const rsaSigKeys = jwksData.keys.filter(jwk =>
-            jwk.kty === 'RSA' &&   // Key type must be RSA
-            jwk.use === 'sig'      // Key usage must be for signing
-            // IMPORTANT: We are omitting 'jwk.alg === 'RS256'' here.
-        ).map(jwk => {
-            // Create a new JWK object without the 'alg' property.
-            // We keep 'kid', 'kty', 'use', 'n', 'e' which are essential.
-            const { alg, ...restOfJwk } = jwk;
-            return restOfJwk;
-        });
-
-        if (rsaSigKeys.length === 0) {
-            throw new Error("No suitable RS256 signing keys found in the JWKS response.");
-        }
-
-        // Create a JWK Set from the filtered keys. 'createJWKSet' will internally
-        // use the Web Crypto API to import these keys.
-        preparedJWKS = createLocalJWKSet({ keys: rsaSigKeys });
-        return preparedJWKS;
-
-    } catch (error: unknown) {
-        console.error("Error preparing JWKS:", error);
-        // Re-throw the error so that token verification fails gracefully
-        throw error;
-    }
+    throw new Error(`Unable to find valid key with kid=${kid}`);
 }
 
 
@@ -68,7 +43,8 @@ export async function verifyFirebaseToken(idToken: string) {
 
     try {
 
-        const jwks = await getPreparedJWKS();
+        const { kid } = decodeProtectedHeader(idToken);
+        const jwks = await getFirebasePublicKey(kid as string);
 
         const { payload } = await jwtVerify(idToken, jwks, {
             issuer: `https://securetoken.google.com/${projectId}`,
