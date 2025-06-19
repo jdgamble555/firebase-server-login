@@ -38,9 +38,14 @@ async function getPreparedJWKS() {
         // and specifically for the RS256 algorithm. This explicit filtering is key.
         const rsaSigKeys = jwksData.keys.filter(jwk =>
             jwk.kty === 'RSA' &&   // Key type must be RSA
-            jwk.use === 'sig' &&   // Key usage must be for signing
-            jwk.alg === 'RS256'    // Algorithm must be RS256
-        );
+            jwk.use === 'sig'      // Key usage must be for signing
+            // IMPORTANT: We are omitting 'jwk.alg === 'RS256'' here.
+        ).map(jwk => {
+            // Create a new JWK object without the 'alg' property.
+            // We keep 'kid', 'kty', 'use', 'n', 'e' which are essential.
+            const { alg, ...restOfJwk } = jwk;
+            return restOfJwk;
+        });
 
         if (rsaSigKeys.length === 0) {
             throw new Error("No suitable RS256 signing keys found in the JWKS response.");
