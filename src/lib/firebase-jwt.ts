@@ -1,4 +1,4 @@
-import { decodeProtectedHeader, importJWK, jwtVerify } from "jose";
+import { decodeProtectedHeader, jwtVerify } from "jose";
 import { firebase_config } from "./firebase";
 import type { FirebaseIdTokenPayload } from "./firebase-types";
 import {
@@ -16,26 +16,23 @@ const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken
 
 // Cache of parsed keys
 const jwkCache: Record<string, CryptoKey> = {};
-const jwksRawCache: Record<string, unknown> = {};
 
-async function getFirebasePublicKey(kid: string): Promise<CryptoKey> {
-    if (jwkCache[kid]) return jwkCache[kid];
+async function getFirebasePublicJWK(kid: string) {
+	if (jwkCache[kid]) return jwkCache[kid];
 
-    const res = await fetch(JWKS_URL);
-    if (!res.ok) throw new Error("Failed to fetch Firebase JWKS");
+	const res = await fetch(JWKS_URL);
+	if (!res.ok) throw new Error("Failed to fetch Firebase JWKS");
 
-    const { keys } = await res.json();
+	const { keys } = await res.json();
 
-    for (const jwk of keys) {
-        if (jwk.kid === kid && jwk.alg === 'RS256' && jwk.kty === 'RSA' && jwk.use === 'sig') {
-            const cryptoKey = await importJWK(jwk, 'RS256') as CryptoKey;
-            jwkCache[jwk.kid] = cryptoKey;
-            jwksRawCache[jwk.kid] = jwk;
-            return cryptoKey;
-        }
-    }
+	for (const jwk of keys) {
+		if (jwk.kid === kid && jwk.alg === 'RS256' && jwk.kty === 'RSA' && jwk.use === 'sig') {
+			jwkCache[kid] = jwk;
+			return jwk;
+		}
+	}
 
-    throw new Error(`Unable to find valid key with kid=${kid}`);
+	throw new Error(`Unable to find valid key with kid=${kid}`);
 }
 
 
@@ -44,7 +41,7 @@ export async function verifyFirebaseToken(idToken: string) {
     try {
 
         const { kid } = decodeProtectedHeader(idToken);
-        const jwks = await getFirebasePublicKey(kid as string);
+        const jwks = await getFirebasePublicJWK(kid as string);
 
         const { payload } = await jwtVerify(idToken, jwks, {
             issuer: `https://securetoken.google.com/${projectId}`,
