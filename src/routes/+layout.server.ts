@@ -1,9 +1,14 @@
 import { getUser } from "$lib/firebase";
+import { error } from "@sveltejs/kit";
 import type { LayoutServerLoad } from "./$types";
 
 export const load = (async ({ locals: { getFirebaseServer } }) => {
 
-    const { data } = await getFirebaseServer();
+    const { data, error: firebaseError } = await getFirebaseServer();
+
+    if (firebaseError) {
+        error(400, firebaseError);
+    }
 
     if (!data.auth) {
         return {
