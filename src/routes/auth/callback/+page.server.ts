@@ -16,7 +16,7 @@ export const load: PageServerLoad = async ({ url }) => {
     const { error: loginError } = await loginWithCode(code);
 
     if (loginError) {
-        console.error(loginError);
+        console.error(JSON.stringify(loginError));
         error(400, loginError);
     }
 

@@ -60,7 +60,7 @@ export async function verifyFirebaseToken(idToken: string) {
             err instanceof JWTInvalid ||
             err instanceof JWTClaimValidationFailed ||
             err instanceof JWSSignatureVerificationFailed) {
-            console.error(err);
+            console.error(JSON.stringify(err));
             return {
                 error: err,
                 data: null
