@@ -4,7 +4,8 @@ import type {
     FirebaseCreateAuthUriResponse,
     FirebaseIdpSignInResponse,
     FirebaseRefreshTokenResponse,
-    FirebaseRestError
+    FirebaseRestError,
+    UserRecord
 } from "./firebase-types";
 import { exchangeCodeForGoogleIdToken } from "./google-oauth";
 import { restFetch } from "./rest-fetch";
@@ -96,6 +97,48 @@ async function signInWithIdp(googleIdToken: string) {
         error: error ? error.error : null
     };
 }
+
+
+export async function getUser(idToken: string) {
+
+    const { fetch } = getRequestEvent();
+
+    const url = createIdentityURL('lookup');
+
+    const { data, error } = await restFetch<UserRecord[], FirebaseRestError>(url, {
+        global: { fetch },
+        body: {
+            idToken
+        },
+        params: {
+            key
+        },
+        form: true
+    });
+
+    return {
+        data: data?.length ? data[0] : null,
+        error: error ? error.error : null
+    };
+}
+
+export async function getJWKs() {
+
+    const { fetch } = getRequestEvent();
+
+    const url = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
+
+    const { data, error } = await restFetch<{ keys: (JsonWebKey & { kid: string })[] }, FirebaseRestError>(url, {
+        global: { fetch },
+        method: "GET"
+    });
+
+    return {
+        data: data?.keys || null,
+        error: error ? error.error : null
+    };
+}
+
 
 export async function exchangeCodeForFirebaseToken(code: string) {
 

@@ -35,7 +35,7 @@ export async function exchangeCodeForGoogleIdToken(code: string) {
 
     const url = 'https://oauth2.googleapis.com/token';
 
-    return await restFetch<GoogleTokenResponse, FirebaseRestError>(url, {
+    const { data, error } = await restFetch<GoogleTokenResponse, FirebaseRestError>(url, {
         global: { fetch },
         body: {
             code,
@@ -46,4 +46,9 @@ export async function exchangeCodeForGoogleIdToken(code: string) {
         },
         form: true
     });
+
+    return {
+        data,
+        error: error ? error.error : null
+    };
 }

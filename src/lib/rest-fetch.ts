@@ -5,13 +5,14 @@ export const restFetch = async <T, A>(
         params?: Record<string, string>;
         form?: boolean;
         bearerToken?: string;
-        global: {
-            fetch: typeof fetch;
+        method?: "POST" | "GET";
+        global?: {
+            fetch?: typeof fetch;
         }
     }
 ) => {
 
-    const fetchFn = options?.global.fetch ?? fetch;
+    const fetchFn = options?.global?.fetch ?? fetch;
     const form = options?.form ?? false;
     const bearerHeader = options?.bearerToken
         ? { 'Authorization': `Bearer ${options.bearerToken}` }
@@ -22,7 +23,7 @@ export const restFetch = async <T, A>(
         : '';
 
     const res = await fetchFn(url + query, {
-        method: "POST",
+        method: options?.method ?? "POST",
         headers: {
             "Content-Type": form
                 ? "application/x-www-form-urlencoded"

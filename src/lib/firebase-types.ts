@@ -84,3 +84,35 @@ export type FirebaseIdTokenPayload = {
     name?: string;
     picture?: string;
 };
+
+export interface UserMetadata {
+    creationTime: string
+    lastSignInTime: string
+    lastRefreshTime?: string
+}
+
+export interface UserInfo {
+    uid: string
+    displayName?: string
+    email?: string
+    photoURL?: string
+    phoneNumber?: string
+    providerId: string
+}
+
+export type CustomClaims = Record<string, string | number | boolean | null>
+
+export interface UserRecord {
+    uid: string
+    email?: string
+    emailVerified: boolean
+    displayName?: string
+    photoURL?: string
+    phoneNumber?: string
+    disabled: boolean
+    metadata: UserMetadata
+    providerData: UserInfo[]
+    tokensValidAfterTime?: string
+    tenantId?: string
+    customClaims?: { [key: string]: CustomClaims }
+}
