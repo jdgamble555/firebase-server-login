@@ -1,7 +1,7 @@
 import { getRequestEvent } from "$app/server"
-import { FIREBASE_ID_TOKEN, FIREBASE_REFRESH_TOKEN } from "./firebase";
-import { refreshFirebaseIdToken } from "./firebase-auth";
-import { verifyFirebaseToken } from "./firebase-jwt";
+import { firebase_config, FIREBASE_ID_TOKEN, FIREBASE_REFRESH_TOKEN } from "./firebase";
+import { refreshFirebaseIdToken } from "./firebase-auth-endpoints";
+import { verifyJWT } from "./firebase-jwt";
 
 const COOKIE_OPTIONS = {
     httpOnly: true,
@@ -67,6 +67,10 @@ export const deleteSession = () => {
 
 export const getVerifiedToken = async () => {
 
+    const projectId = firebase_config.projectId;
+
+    const { fetch } = getRequestEvent();
+
     const { data } = getSession();
 
     if (!data) {
@@ -79,17 +83,21 @@ export const getVerifiedToken = async () => {
     const {
         error: verifyError,
         data: verifyData
-    } = await verifyFirebaseToken(data.id_token);
+    } = await verifyJWT(data.id_token, projectId, fetch);
 
     if (verifyError) {
 
         // Auto refresh if expired
         if (verifyError.code === "ERR_JWT_EXPIRED") {
 
-            const { 
+            const {
                 data: refreshData,
                 error: refreshError
-            } = await refreshFirebaseIdToken(data.refresh_token);
+            } = await refreshFirebaseIdToken(
+                data.refresh_token,
+                firebase_config.apiKey,
+                fetch            
+            );
 
             if (refreshError) {
                 deleteSession();

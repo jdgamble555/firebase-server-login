@@ -1,6 +1,8 @@
 import { deleteSession, getVerifiedToken, saveSession } from "./firebase-session";
-import { exchangeCodeForFirebaseToken } from "./firebase-auth";
-import { firebaseClient, firebaseServer } from "./firebase";
+import { exchangeCodeForFirebaseToken } from "./firebase-auth-endpoints";
+import { firebase_config, firebaseClient, firebaseServer } from "./firebase";
+import { getRedirectUri } from "./svelte-helpers";
+import { getRequestEvent } from "$app/server";
 
 export const getFirebaseServer = async () => {
 
@@ -31,7 +33,7 @@ export const getFirebaseServer = async () => {
             data: {
                 db,
                 auth: null
-            }            
+            }
         };
     }
 
@@ -45,7 +47,7 @@ export const getFirebaseServer = async () => {
             data: {
                 db,
                 auth: null
-            }            
+            }
         };
     }
 
@@ -62,10 +64,19 @@ export const logout = () => deleteSession();
 
 export const loginWithCode = async (code: string) => {
 
+    const { fetch } = getRequestEvent();
+
+    const redirect_uri = getRedirectUri();
+
     const {
         data: exchangeData,
         error: exchangeError
-    } = await exchangeCodeForFirebaseToken(code);
+    } = await exchangeCodeForFirebaseToken(
+        code,
+        redirect_uri,
+        firebase_config.apiKey,
+        fetch
+    );
 
     if (exchangeError) {
         return {
