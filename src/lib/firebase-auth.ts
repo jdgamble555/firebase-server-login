@@ -48,16 +48,18 @@ export function createGoogleOAuthLoginUrl() {
         next: path
     });
 
-    const loginUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
-    loginUrl.searchParams.set("client_id", client_id);
-    loginUrl.searchParams.set("redirect_uri", redirect_uri);
-    loginUrl.searchParams.set("response_type", "code");
-    loginUrl.searchParams.set("scope", "openid email profile");
-    loginUrl.searchParams.set("access_type", "offline");
-    loginUrl.searchParams.set("prompt", "consent");
-    loginUrl.searchParams.set("state", state);
-
-    return loginUrl.toString();
+    return new URL(
+        "https://accounts.google.com/o/oauth2/v2/auth?" +
+        new URLSearchParams({
+            client_id,
+            redirect_uri,
+            response_type: "code",
+            scope: "openid email profile",
+            access_type: "offline",
+            prompt: "consent",
+            state
+        }).toString()
+    ).toString();
 }
 
 async function exchangeCodeForGoogleIdToken(code: string) {

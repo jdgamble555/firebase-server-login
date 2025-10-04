@@ -86,7 +86,7 @@ export const getVerifiedToken = async () => {
         // Auto refresh if expired
         if (verifyError.code === "ERR_JWT_EXPIRED") {
 
-            const {
+            const { 
                 data: refreshData,
                 error: refreshError
             } = await refreshFirebaseIdToken(data.refresh_token);
