@@ -18,6 +18,7 @@ const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken
 const jwkCache: Record<string, CryptoKey> = {};
 
 async function getFirebasePublicJWK(kid: string) {
+    
 	if (jwkCache[kid]) return jwkCache[kid];
 
 	const res = await fetch(JWKS_URL);

@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions } from './$types';
-import { createGoogleOAuthLoginUrl } from '$lib/firebase-auth';
 import { logout } from '$lib/firebase-server';
+import { createGoogleOAuthLoginUrl } from '$lib/google-oauth';
 
 // TODO - redirect if logged in
 

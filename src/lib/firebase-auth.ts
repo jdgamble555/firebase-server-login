@@ -1,113 +1,100 @@
 import { getRequestEvent } from "$app/server";
-import {
-    client_id,
-    client_redirect_uri,
-    client_secret,
-    DEFAULT_REDIRECT_PAGE,
-    firebase_config
-} from "./firebase";
+import { firebase_config } from "./firebase";
 import type {
     FirebaseCreateAuthUriResponse,
     FirebaseIdpSignInResponse,
     FirebaseRefreshTokenResponse,
-    GoogleTokenResponse
+    FirebaseRestError
 } from "./firebase-types";
-import { firebaseFetch, googleFetch } from "./rest-fetch";
+import { exchangeCodeForGoogleIdToken } from "./google-oauth";
+import { restFetch } from "./rest-fetch";
+import { getRedirectUri } from "./svelte-helpers";
 
-export const apiKey = firebase_config.apiKey;
+export const key = firebase_config.apiKey;
 
-export const getPathname = () => {
-
-    const { request } = getRequestEvent();
-
-    const referer = request.headers.get('referer');
-
-    if (!referer) {
-        return DEFAULT_REDIRECT_PAGE;
-    }
-
-    const url = new URL(referer);
-    return url.searchParams.get("next") || DEFAULT_REDIRECT_PAGE;
-}
-
-export const getRedirectUri = () => {
-
-    const { url } = getRequestEvent();
-
-    return url.origin + client_redirect_uri;
-};
 
 // Functions
 
-export function createGoogleOAuthLoginUrl() {
-
-    const redirect_uri = getRedirectUri();
-    const path = getPathname();
-
-    const state = JSON.stringify({
-        next: path
-    });
-
-    return new URL(
-        "https://accounts.google.com/o/oauth2/v2/auth?" +
-        new URLSearchParams({
-            client_id,
-            redirect_uri,
-            response_type: "code",
-            scope: "openid email profile",
-            access_type: "offline",
-            prompt: "consent",
-            state
-        }).toString()
-    ).toString();
-}
-
-async function exchangeCodeForGoogleIdToken(code: string) {
-
-    const redirect_uri = getRedirectUri();
-
-    const url = 'https://oauth2.googleapis.com/token';
-
-    return await googleFetch<GoogleTokenResponse>(url, {
-        code,
-        client_id,
-        client_secret,
-        redirect_uri,
-        grant_type: "authorization_code"
-    });
+function createIdentityURL(name: string) {
+    return `https://identitytoolkit.googleapis.com/v1/accounts:${name}`;
 }
 
 export async function refreshFirebaseIdToken(refreshToken: string) {
 
-    const url = `https://securetoken.googleapis.com/v1/token?key=${apiKey}`;
+    const { fetch } = getRequestEvent();
 
-    return await googleFetch<FirebaseRefreshTokenResponse>(url, {
-        grant_type: "refresh_token",
-        refresh_token: refreshToken
+    const url = `https://securetoken.googleapis.com/v1/token`;
+
+    const { data, error } = await restFetch<FirebaseRefreshTokenResponse, FirebaseRestError>(url, {
+        global: { fetch },
+        body: {
+            grant_type: "refresh_token",
+            refresh_token: refreshToken
+        },
+        params: {
+            key
+        },
+        form: true
     });
+
+    return {
+        data,
+        error: error ? error.error : null
+    };
 }
 
 export async function createAuthUri(redirect_uri: string) {
 
-    const url = `https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${apiKey}`;
+    const { fetch } = getRequestEvent();
 
-    return await firebaseFetch<FirebaseCreateAuthUriResponse>(url, {
-        continueUri: redirect_uri,
-        providerId: "google.com"
+    const url = createIdentityURL('createAuthUri');
+
+    const { data, error } = await restFetch<FirebaseCreateAuthUriResponse, FirebaseRestError>(url, {
+        global: { fetch },
+        body: {
+            continueUri: redirect_uri,
+            providerId: "google.com"
+        },
+        params: {
+            key
+        }
     });
+
+    return {
+        data,
+        error: error ? error.error : null
+    };
 }
 
 async function signInWithIdp(googleIdToken: string) {
 
+    const { fetch } = getRequestEvent();
+
     const requestUri = getRedirectUri()
 
-    const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${apiKey}`;
+    const url = createIdentityURL('signInWithIdp');
 
-    return await firebaseFetch<FirebaseIdpSignInResponse>(url, {
-        postBody: `id_token=${googleIdToken}&providerId=google.com`,
-        requestUri,
-        returnSecureToken: true
+    const postBody = new URLSearchParams({
+        id_token: googleIdToken,
+        providerId: "google.com"
+    }).toString();
+
+    const { data, error } = await restFetch<FirebaseIdpSignInResponse, FirebaseRestError>(url, {
+        global: { fetch },
+        body: {
+            postBody,
+            requestUri,
+            returnSecureToken: true
+        },
+        params: {
+            key
+        }
     });
+
+    return {
+        data,
+        error: error ? error.error : null
+    };
 }
 
 export async function exchangeCodeForFirebaseToken(code: string) {
