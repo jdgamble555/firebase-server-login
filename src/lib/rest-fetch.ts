@@ -1,4 +1,4 @@
-const PRINT_URL = true;
+const PRINT_URL = false;
 
 
 export const restFetch = async <T, A>(
@@ -11,7 +11,8 @@ export const restFetch = async <T, A>(
         method?: "POST" | "GET";
         global?: {
             fetch?: typeof fetch;
-        }
+        },
+        headers?: Record<string, string>;
     }
 ) => {
 
@@ -31,7 +32,8 @@ export const restFetch = async <T, A>(
             "Content-Type": form
                 ? "application/x-www-form-urlencoded"
                 : "application/json",
-            ...bearerHeader
+            ...bearerHeader,
+            ...options?.headers
         },
         body: options?.body ? form
             ? new URLSearchParams(options.body as Record<string, string>)

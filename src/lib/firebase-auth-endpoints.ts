@@ -5,7 +5,6 @@ import type {
     FirebaseRestError,
     UserRecord
 } from "./firebase-types";
-import { exchangeCodeForGoogleIdToken } from "./google-oauth";
 import { restFetch } from "./rest-fetch";
 
 
@@ -70,7 +69,7 @@ export async function createAuthUri(
     };
 }
 
-async function signInWithIdp(
+export async function signInWithIdp(
     googleIdToken: string,
     requestUri: string,
     key: string,
@@ -89,6 +88,32 @@ async function signInWithIdp(
         body: {
             postBody,
             requestUri,
+            returnSecureToken: true
+        },
+        params: {
+            key
+        }
+    });
+
+    return {
+        data,
+        error: error ? error.error : null
+    };
+}
+
+
+export async function signInWithCustomToken(
+    jwtToken: string,
+    key: string,
+    fetchFn?: typeof globalThis.fetch
+) {
+
+    const url = createIdentityURL('signInWithCustomToken');
+
+    const { data, error } = await restFetch<FirebaseIdpSignInResponse, FirebaseRestError>(url, {
+        global: { fetch: fetchFn },
+        body: {
+            token: jwtToken,
             returnSecureToken: true
         },
         params: {
@@ -181,64 +206,6 @@ export async function getPublicKeys(fetchFn?: typeof globalThis.fetch) {
     };
 }
 
-export async function exchangeCodeForFirebaseToken(
-    code: string,
-    redirect_uri: string,
-    key: string,
-    fetchFn?: typeof globalThis.fetch
-) {
 
-    const {
-        data: uriData,
-        error: uriError
-    } = await exchangeCodeForGoogleIdToken(
-        code,
-        redirect_uri,
-        fetchFn
-    );
-
-    if (uriError) {
-        return {
-            data: null,
-            error: uriError
-        };
-    }
-
-    if (!uriData) {
-        return {
-            data: null,
-            error: null
-        };
-    }
-
-    const {
-        data: signInData,
-        error: signInError
-    } = await signInWithIdp(
-        uriData.id_token,
-        redirect_uri,
-        key,
-        fetchFn
-    );
-
-    if (signInError) {
-        return {
-            data: null,
-            error: signInError
-        };
-    }
-
-    if (!signInData) {
-        return {
-            data: null,
-            error: null
-        };
-    }
-
-    return {
-        data: signInData,
-        error: null
-    };
-}
 
 

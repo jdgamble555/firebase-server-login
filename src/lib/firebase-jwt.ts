@@ -1,4 +1,11 @@
-import { decodeProtectedHeader, importPKCS8, importX509, jwtVerify, SignJWT } from "jose";
+import {
+    decodeProtectedHeader,
+    errors,
+    importPKCS8,
+    importX509,
+    jwtVerify,
+    SignJWT
+} from "jose";
 import {
     JWSSignatureVerificationFailed,
     JWTClaimValidationFailed,
@@ -125,6 +132,7 @@ export async function verifyJWT(
         }
 
         const jwk = data.find(key => key.kid === kid);
+
         if (!jwk) {
             return {
                 error: {
@@ -159,8 +167,10 @@ export async function verifyJWT(
             };
         }
 
-        // Should never happen
-        throw err;
+        return {
+            error: err as Error,
+            data: null
+        };
     }
 }
 
@@ -179,16 +189,96 @@ export async function signJWT(
         "https://www.googleapis.com/auth/devstorage.read_write"
     ] as const;
 
-    const key = await importPKCS8(private_key, 'RS256');
+    try {
 
-    const token = await new SignJWT({ scope: SCOPES.join(' ') })
-        .setProtectedHeader({ alg: 'RS256', typ: 'JWT' })
-        .setIssuer(client_email)
-        .setSubject(client_email)
-        .setAudience(OAUTH_TOKEN_URL)
-        .setIssuedAt()
-        .setExpirationTime('1h')
-        .sign(key);
+        const key = await importPKCS8(private_key, 'RS256');
 
-    return token;
+        const token = await new SignJWT({ scope: SCOPES.join(' ') })
+            .setProtectedHeader({ alg: 'RS256', typ: 'JWT' })
+            .setIssuer(client_email)
+            .setSubject(client_email)
+            .setAudience(OAUTH_TOKEN_URL)
+            .setIssuedAt()
+            .setExpirationTime('1h')
+            .sign(key);
+
+        return {
+            data: token,
+            error: null
+        };
+    } catch (e: unknown) {
+
+        if (e instanceof errors.JOSEError) {
+            return {
+                data: null,
+                error: e
+            };
+        }
+
+        return {
+            data: null,
+            error: e as Error
+        };
+    }
+}
+
+const RESERVED_CLAIMS = [
+  'acr', 'amr', 'at_hash', 'aud', 'auth_time', 'azp', 'cnf', 'c_hash',
+  'exp', 'iat', 'iss', 'jti', 'nbf', 'nonce', 'sub',
+  'firebase', 'user_id'
+];
+
+export async function signJWTCustomToken(
+    uid: string,
+    serviceAccount: ServiceAccount,
+    additionalClaims: object = {}
+) {
+
+    const { private_key, client_email } = serviceAccount;
+
+    if (Object.keys(additionalClaims).some(k => RESERVED_CLAIMS.includes(k) || k.startsWith('firebase'))) {
+        return {
+            data: null,
+            error: new Error(`Reserved claims (${RESERVED_CLAIMS.join(', ')}) cannot be used in additionalClaims`)
+        };
+    }
+
+    const payload: Record<string, unknown> = { uid };
+    if (Object.keys(additionalClaims).length) {
+        payload.claims = additionalClaims;
+    }
+
+    const url = 'https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit';
+
+    try {
+        const key = await importPKCS8(private_key, 'RS256');
+
+        const token = await new SignJWT(payload)
+            .setProtectedHeader({ alg: 'RS256', typ: 'JWT' })
+            .setIssuer(client_email)
+            .setSubject(client_email)
+            .setAudience(url)
+            .setIssuedAt()
+            .setExpirationTime('1h')
+            .sign(key);
+
+        return {
+            data: token,
+            error: null
+        };
+
+    } catch (e: unknown) {
+
+        if (e instanceof errors.JOSEError) {
+            return {
+                data: null,
+                error: e
+            };
+        }
+
+        return {
+            data: null,
+            error: e as Error
+        };
+    }
 }

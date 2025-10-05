@@ -4,12 +4,12 @@ import type {
     ServiceAccount
 } from "./firebase-types";
 import { restFetch } from "./rest-fetch";
-import { client_id, client_secret } from "./firebase";
 import { signJWT } from "./firebase-jwt";
 
 export function createGoogleOAuthLoginUrl(
     redirect_uri: string,
-    path: string
+    path: string,
+    client_id: string
 ) {
 
     return new URL(
@@ -31,6 +31,8 @@ export function createGoogleOAuthLoginUrl(
 export async function exchangeCodeForGoogleIdToken(
     code: string,
     redirect_uri: string,
+    client_id: string,
+    client_secret: string,
     fetchFn?: typeof globalThis.fetch
 ) {
 
@@ -61,19 +63,66 @@ export async function getToken(
 
     const url = 'https://oauth2.googleapis.com/token';
 
-    const jwt = await signJWT(serviceAccount);
+    try {
 
-    const { data, error } = await restFetch<GoogleTokenResponse, FirebaseRestError>(url, {
-        global: { fetch },
-        body: {
-            grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-            assertion: jwt
-        },
-        form: true
-    });
+        const { data: jwtData, error: jwtError } = await signJWT(serviceAccount);
+
+        if (jwtError) {
+            return {
+                data: null,
+                error: jwtError
+            };
+        }
+
+        if (!jwtData) {
+            return {
+                data: null,
+                error: {
+                    code: 500,
+                    message: 'No JWT data returned',
+                    errors: []
+                }
+            };
+        }
+
+        const { data, error } = await restFetch<GoogleTokenResponse, FirebaseRestError>(url, {
+            global: { fetch },
+            body: {
+                grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+                assertion: jwtData
+            },
+            headers: {
+                'Cache-Control': 'no-cache',
+                Host: 'oauth2.googleapis.com',
+            },
+            form: true
+        });
+
+        return {
+            data,
+            error: error ? error.error : null
+        };
+
+    } catch (e: unknown) {
+
+        if (e instanceof Error) {
+            return {
+                data: null,
+                error: {
+                    code: 500,
+                    message: e.message,
+                    errors: []
+                }
+            };
+        }
+    }
 
     return {
-        data,
-        error: error ? error.error : null
+        data: null,
+        error: {
+            code: 500,
+            message: 'Unknown error',
+            errors: []
+        }
     };
 }

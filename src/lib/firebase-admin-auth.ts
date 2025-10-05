@@ -1,5 +1,5 @@
 import { createSessionCookie, getAccountInfoByUid } from "./firebase-auth-endpoints";
-import { verifyJWT, verifySessionJWT } from "./firebase-jwt";
+import { signJWTCustomToken, verifyJWT, verifySessionJWT } from "./firebase-jwt";
 import type { ServiceAccount } from "./firebase-types";
 import { getToken } from "./google-oauth";
 
@@ -219,6 +219,34 @@ export class FirebaseAdminAuth {
                     message: 'No user record found!',
                     code: 'ERR_NO_USER'
                 }
+            };
+        }
+
+        return {
+            data,
+            error: null
+        };
+    }
+
+    async createCustomToken(uid: string, developerClaims: object = {}) {
+
+        const { data, error } = await signJWTCustomToken(
+            uid,
+            this.serviceAccountKey,
+            developerClaims
+        );
+
+        if (error) {
+            return {
+                data: null,
+                error
+            };
+        }
+
+        if (!data) {
+            return {
+                data: null,
+                error: new Error('No custom token returned')
             };
         }
 
