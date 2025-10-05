@@ -202,6 +202,7 @@ export class FirebaseAdminAuth {
                 error: null
             };
         }
+
         const { data: user, error: userError } = await this.getUser(data.sub);
 
         if (userError) {
@@ -220,5 +221,10 @@ export class FirebaseAdminAuth {
                 }
             };
         }
+
+        return {
+            data,
+            error: null
+        };
     }
 }

@@ -118,15 +118,46 @@ export interface UserRecord {
 }
 
 export interface ServiceAccount {
-  type: "service_account";
-  project_id: string;
-  private_key_id: string;
-  private_key: string;
-  client_email: string;
-  client_id: string;
-  auth_uri: string;
-  token_uri: string;
-  auth_provider_x509_cert_url: string;
-  client_x509_cert_url: string;
-  universe_domain?: string; // newer keys sometimes include this
+    type: "service_account";
+    project_id: string;
+    private_key_id: string;
+    private_key: string;
+    client_email: string;
+    client_id: string;
+    auth_uri: string;
+    token_uri: string;
+    auth_provider_x509_cert_url: string;
+    client_x509_cert_url: string;
+    universe_domain?: string;
+}
+
+export interface AccountsQueryResponse {
+    recordsCount: string;
+    userInfo: UserInfo[];
+}
+
+export interface UserInfo {
+    localId: string;
+    email?: string;
+    displayName?: string;
+    photoUrl?: string;
+    emailVerified?: boolean;
+    providerUserInfo?: ProviderUserInfo[];
+    validSince?: string;
+    lastLoginAt?: string;
+    createdAt?: string;
+    customAttributes?: string;
+    emailLinkSignin?: boolean;
+    initialEmail?: string;
+    lastRefreshAt?: string;
+    disabled?: boolean;
+}
+
+export interface ProviderUserInfo {
+    providerId: string;
+    rawId?: string;
+    email?: string;
+    displayName?: string;
+    photoUrl?: string;
+    federatedId?: string;
 }

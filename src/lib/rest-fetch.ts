@@ -1,3 +1,6 @@
+const PRINT_URL = true;
+
+
 export const restFetch = async <T, A>(
     url: string,
     options?: {
@@ -34,6 +37,10 @@ export const restFetch = async <T, A>(
             ? new URLSearchParams(options.body as Record<string, string>)
             : JSON.stringify(options.body) : undefined
     });
+
+    if (PRINT_URL) {
+        console.log('restFetch', url + query);
+    }
 
     if (res.headers.get("content-type")?.includes("application/json")) {
 

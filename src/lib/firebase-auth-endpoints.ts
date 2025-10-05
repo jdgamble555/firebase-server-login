@@ -110,20 +110,18 @@ export async function getAccountInfoByUid(
     fetchFn?: typeof globalThis.fetch
 ) {
 
-    const url = createAdminIdentityURL(project_id, 'query');
+    const url = createAdminIdentityURL(project_id, 'lookup');
 
-    const { data, error } = await restFetch<UserRecord[], FirebaseRestError>(url, {
+    const { data, error } = await restFetch<{ users: UserRecord[] }, FirebaseRestError>(url, {
         global: { fetch: fetchFn },
         body: {
-            filter: {
-                localId: [uid]
-            }
+            localId: uid
         },
         bearerToken: token
     });
 
     return {
-        data: data?.length ? data[0] : null,
+        data: data?.users.length ? data.users[0] : null,
         error: error ? error.error : null
     };
 }
@@ -142,7 +140,7 @@ export async function createSessionCookie(
         global: { fetch: fetchFn },
         body: {
             idToken,
-            validDuration: expiresIn.toString()
+            validDuration: Math.floor(expiresIn / 1000)
         },
         bearerToken: token
     });

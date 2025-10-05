@@ -78,6 +78,8 @@ export const loginWithCode = async (code: string) => {
         fetch
     );
 
+
+
     if (exchangeError) {
         return {
             error: exchangeError
@@ -99,3 +101,33 @@ export const loginWithCode = async (code: string) => {
         error: null
     };
 };
+
+/*
+export const x = async () => {
+
+    const token = await data.auth.currentUser.getIdToken();
+
+    const { data: sessionCookie, error: sessionError } = await auth.createSessionCookie(
+        token,
+        { expiresIn: 60 * 60 * 24 * 5 * 1000 }
+    );
+
+    if (sessionError) {
+        return {
+            error: sessionError
+        };
+    }
+
+    if (!sessionCookie) {
+        return {
+            error: new Error('No session cookie returned')
+        };
+    }
+
+    const decodedIdToken = await auth.verifySessionCookie(sessionCookie, true);
+
+    console.log(decodedIdToken);
+
+
+};
+*/
