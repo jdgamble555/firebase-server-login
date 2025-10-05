@@ -1,5 +1,9 @@
 import { getRequestEvent } from "$app/server";
-import { client_redirect_uri, DEFAULT_REDIRECT_PAGE } from "./firebase";
+
+// Config Options
+const client_redirect_uri = '/auth/callback';
+const DEFAULT_REDIRECT_PAGE = '/';
+
 
 export const getPathname = () => {
 

@@ -8,11 +8,6 @@ import { getFirestore } from 'firebase/firestore/lite';
 export const firebase_config = JSON.parse(PUBLIC_FIREBASE_CONFIG) as FirebaseConfig;
 
 
-// Config Options
-export const client_redirect_uri = '/auth/callback';
-export const DEFAULT_REDIRECT_PAGE = '/';
-
-
 export const firebaseServer = async (authIdToken: string) => {
 
     const serverApp = initializeServerApp(firebase_config, {
