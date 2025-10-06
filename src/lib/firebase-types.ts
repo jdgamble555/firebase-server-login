@@ -161,3 +161,27 @@ export interface ProviderUserInfo {
     photoUrl?: string;
     federatedId?: string;
 }
+
+// Send OOB (magic link) response
+export interface SendEmailLinkResponse {
+  email: string;
+  oobLink?: string; // present only if you request returnOobLink=true
+}
+
+// Sign in with email link response
+export interface SignInWithEmailLinkResponse {
+  idToken: string;
+  refreshToken: string;
+  expiresIn: string; // seconds, as a string (e.g., "3600")
+  localId: string;
+  email?: string;
+  isNewUser?: boolean;
+  // If MFA required:
+  mfaPendingCredential?: string;
+  mfaInfo?: Array<{
+    mfaEnrollmentId: string;
+    phoneInfo?: string;
+    displayName?: string;
+    enrolledAt?: string;
+  }>;
+}

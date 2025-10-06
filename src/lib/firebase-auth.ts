@@ -1,4 +1,4 @@
-import { signInWithCustomToken, signInWithIdp } from "./firebase-auth-endpoints";
+import { sendMagicLink, signInWithCustomToken, signInWithIdp } from "./firebase-auth-endpoints";
 import type { FirebaseConfig } from "./firebase-types";
 
 
@@ -71,9 +71,43 @@ export class FirebaseAuth {
                 error: null
             };
         }
-        
+
         return {
             data: signInData,
+            error: null
+        };
+    }
+
+    async sendSignInLinkToEmail(
+        email: string,
+        opts?: {
+            continueUrl?: string;
+            dynamicLinkDomain?: string;
+            tenantId?: string;
+            returnOobLink?: boolean; // default false
+            bearerToken?: string; // only needed when returnOobLink=true
+        }
+    ) {
+
+        const { data, error } = await sendMagicLink(
+            this.firebase_config.apiKey,
+            email,
+            {
+                ...opts,
+                canHandleCodeInApp: true
+            },
+            this.fetch
+        );
+
+        if (error) {
+            return {
+                data: null,
+                error
+            };
+        }
+
+        return {
+            data,
             error: null
         };
     }

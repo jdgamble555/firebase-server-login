@@ -3,6 +3,7 @@ import type {
     FirebaseIdpSignInResponse,
     FirebaseRefreshTokenResponse,
     FirebaseRestError,
+    SendEmailLinkResponse,
     UserRecord
 } from "./firebase-types";
 import { restFetch } from "./rest-fetch";
@@ -150,6 +151,50 @@ export async function getAccountInfoByUid(
         error: error ? error.error : null
     };
 }
+
+export async function sendMagicLink(
+    apiKey: string,
+    email: string,
+    opts?: {
+        continueUrl?: string;
+        dynamicLinkDomain?: string;
+        canHandleCodeInApp?: boolean; // default true
+        tenantId?: string;
+        /**
+         * If true, Firebase returns the link to you instead of sending the email.
+         * NOTE: This requires calling with a valid OAuth bearer token in opts.bearerToken.
+         */
+        returnOobLink?: boolean;
+        bearerToken?: string; // only needed when returnOobLink=true
+    },
+    fetchFn?: typeof globalThis.fetch
+) {
+    const url = createIdentityURL('sendOobCode');
+
+    const body: Record<string, unknown> = {
+        requestType: "EMAIL_SIGNIN",
+        email,
+        canHandleCodeInApp: opts?.canHandleCodeInApp ?? true
+    };
+
+    if (opts?.continueUrl) body.continueUrl = opts.continueUrl;
+    if (opts?.dynamicLinkDomain) body.dynamicLinkDomain = opts.dynamicLinkDomain;
+    if (opts?.tenantId) body.tenantId = opts.tenantId;
+    if (opts?.returnOobLink) body.returnOobLink = true;
+
+    const { data, error } = await restFetch<SendEmailLinkResponse, FirebaseRestError>(url, {
+        global: { fetch: fetchFn },
+        params: { key: apiKey },
+        body,
+        bearerToken: opts?.bearerToken // only used if you’re requesting returnOobLink
+    });
+
+    return {
+        data: data,
+        error: error ? error.error : null
+    };
+}
+
 
 export async function createSessionCookie(
     idToken: string,
