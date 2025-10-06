@@ -25,3 +25,9 @@ export const firebaseServer = async (authIdToken: string) => {
         auth
     };
 };
+
+// TODO - fix errors
+// TODO - cache
+// TODO - login with magic link
+// TODO - copy to surreal repo
+// TODO - write tests

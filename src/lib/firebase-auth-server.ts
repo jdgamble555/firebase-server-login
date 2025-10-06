@@ -15,37 +15,55 @@ const COOKIE_OPTIONS = {
     maxAge: 60 * 60 * 24 * 5 * 1000
 } as CookieOptions;
 
+type ProviderConfig = Record<string, {
+    client_id: string,
+    client_secret: string
+}>;
+
+type CookieConfig = {
+    getSession: GetSession;
+    saveSession: SetSession;
+    sessionName?: string;
+};
+
 export class FirebaseAuthServer {
 
     auth: FirebaseAuth;
     adminAuth: FirebaseAdminAuth;
 
     private sessionName: string;
+    private firebaseAdminConfig: ServiceAccount;
+    private providers: ProviderConfig;
+    private fetch: typeof globalThis.fetch;
+    private getSession: GetSession;
+    private saveSession: SetSession;
 
-    constructor(
-        private serviceAccountKey: ServiceAccount,
-        private firebase_config: FirebaseConfig,
-        private providers: {
-            google: {
-                client_id: string,
-                client_secret: string
-            }
-        },
-        private cookies: {
-            getSession: GetSession,
-            saveSession: SetSession,
-            sessionName?: string
-        },
-        private fetch?: typeof globalThis.fetch
-    ) {
-        this.auth = new FirebaseAuth(this.firebase_config, fetch);
-        this.adminAuth = new FirebaseAdminAuth(this.serviceAccountKey, fetch);
+    constructor({
+        firebaseAdminConfig,
+        firebaseConfig,
+        providers,
+        cookies,
+        fetch
+    }: {
+        firebaseAdminConfig: ServiceAccount,
+        firebaseConfig: FirebaseConfig,
+        providers: ProviderConfig,
+        cookies: CookieConfig,
+        fetch?: typeof globalThis.fetch
+    }) {
+        this.firebaseAdminConfig = firebaseAdminConfig;
+        this.providers = providers;
+        this.getSession = cookies.getSession;
+        this.saveSession = cookies.saveSession;
+        this.sessionName = cookies.sessionName || DEFAULT_SESSION_NAME;
+        this.fetch = fetch ?? globalThis.fetch;
 
-        this.sessionName = this.cookies.sessionName || DEFAULT_SESSION_NAME;
+        this.auth = new FirebaseAuth(firebaseConfig, fetch);
+        this.adminAuth = new FirebaseAdminAuth(firebaseAdminConfig, fetch);
     }
 
     private deleteSession() {
-        this.cookies.saveSession(
+        this.saveSession(
             this.sessionName,
             '',
             {
@@ -62,7 +80,7 @@ export class FirebaseAuthServer {
 
     async getUser(checkRevoked: boolean = false) {
 
-        const sessionCookie = await this.cookies.getSession(this.sessionName);
+        const sessionCookie = await this.getSession(this.sessionName);
 
         if (!sessionCookie) {
             return {
@@ -191,7 +209,7 @@ export class FirebaseAuthServer {
             };
         }
 
-        this.cookies.saveSession(
+        this.saveSession(
             this.sessionName,
             sessionCookie,
             COOKIE_OPTIONS
@@ -228,7 +246,7 @@ export class FirebaseAuthServer {
             error: signJWTError
         } = await signJWTCustomToken(
             verifiedToken.sub,
-            this.serviceAccountKey
+            this.firebaseAdminConfig
         );
 
         if (signJWTError) {
